@@ -36,8 +36,7 @@ if arg then
 end
 
 if fs.exists("/stargate/farben.lua") then
-  --Farben = loadfile("/stargate/farben.lua")(OC, CC)
-  Farben = {}
+  Farben = loadfile("/stargate/farben.lua")(OC, CC)
 end
 
 if OC then
