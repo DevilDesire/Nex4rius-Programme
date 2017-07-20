@@ -20,37 +20,30 @@ _G.shell = shell
 local fs                      = fs or require("filesystem")
 local term                    = term or require("term")
 local schreibSicherungsdatei  = loadfile("/stargate/schreibSicherungsdatei.lua")
+local _, Farben               = pcall(loadfile("/stargate/farben.lua"), OC, CC)
 local betaVersionName         = ""
 local Sicherung               = {}
 local Funktion                = {}
 local component               = {}
 local gpu                     = {}
-local Farben                  = {}
 local version
 local arg                     = ...
-
-term.clear()
 
 if arg then
   arg                         = string.lower(tostring(arg))
 end
 
-if fs.exists("/stargate/farben.lua") then
-  --Farben = loadfile("/stargate/farben.lua")(OC, CC)
-  Farben = {}
-end
-
 if OC then
   component = require("component")
   gpu = component.getPrimary("gpu")
-  local function a(code) if code then gpu.setForeground(code) end end
-  local function b(code) if code then gpu.setBackground(code) end end
-  gpu.setForeground = a
-  gpu.setBackground = b
+  local a = gpu.setForeground
+  local b = gpu.setBackground
+  gpu.setForeground = function(code) if code then a(code) end end
+  gpu.setBackground = function(code) if code then b(code) end end
 elseif CC then
   component.getPrimary = peripheral.find
-  component.isAvailable = function(name)
-    cc_immer = {}
+  function component.isAvailable(name)
+    local cc_immer = {}
     cc_immer.internet = function() return http end
     cc_immer.redstone = function() return true end
     if cc_immer[name] then
@@ -64,14 +57,12 @@ elseif CC then
   gpu.setBackground = function(code) if code then gpu.setBackgroundColor(code) end end
   gpu.maxResolution = gpu.getSize
   gpu.fill = function() term.clear() end
-  fs.remove = fs.remove or fs.delete
 end
-print("1")
-io.read()
-local function kopieren(a, b, c)
+
+local kopieren = loadfile("/bin/cp.lua") or function(a, b, c)
   if type(a) == "string" and type(b) == "string" then
     if c == "-n" then
-      fs.remove(b)
+      fs.delete(b)
     end
     if fs.exists(a) and not fs.exists(b) then
       fs.copy(a, b)
@@ -79,8 +70,6 @@ local function kopieren(a, b, c)
     return true
   end
 end
-print("2")
-io.read()
 local wget = loadfile("/bin/wget.lua") or function(option, url, ziel)
   if type(url) ~= "string" and type(ziel) ~= "string" then
     return
@@ -121,16 +110,14 @@ local wget = loadfile("/bin/wget.lua") or function(option, url, ziel)
     return
   end
 end
-print("3")
-io.read()
+
 function Funktion.Pfad(versionTyp)
   if versionTyp == nil then
     versionTyp = "master"
   end
   return "https://raw.githubusercontent.com/Nex4rius/Nex4rius-Programme/" .. versionTyp .. "/Stargate-Programm/"
 end
-print("4")
-io.read()
+
 function Funktion.checkSprache()
   if Sicherung.Sprache and Sicherung.Sprache ~= "" then
     if fs.exists("/stargate/sprache/" .. Sicherung.Sprache .. ".lua") then
@@ -181,40 +168,34 @@ function Funktion.checkSprache()
     return true
   end
 end
+
 function Funktion.checkOpenOS()
   if OC then
-    local OpenOS_Version = "OpenOS 1.6.7"
+    local OpenOS_Version = "OpenOS 1.6.1"
     if _OSVERSION == OpenOS_Version then
-      gpu.setForeground(Farben.grueneFarbe)
+      gpu.setForeground(0x00FF00)
       print("\nOpenOS Version:        " .. _OSVERSION)
     else
-      gpu.setForeground(roteFarbe)
+      gpu.setForeground(0xFF0000)
       print("\nOpenOS Version:        " .. _OSVERSION .. " -> " .. OpenOS_Version)
     end
-    gpu.setForeground(Farben.weisseFarbe)
+    gpu.setForeground(0xFFFFFF)
   elseif CC then
     print("\nCraftOS Version:       " .. os.version())
   end
 end
+
 function Funktion.checkKomponenten()
   term.clear()
-  print("1")
-  io.read()
   print(type(sprachen.pruefeKomponenten))
-  print("2")
-  io.read()
   print(sprachen.pruefeKomponenten)
-  print("3")
-  io.read()
   print(sprachen.pruefeKomponenten or "Prüfe Komponenten\n")
-  print("4")
-  io.read()
   local function check(eingabe)
     if component.isAvailable(eingabe[1]) then
-      gpu.setForeground(Farben.grueneFarbe)
+      gpu.setForeground(0x00FF00)
       print(eingabe[2])
     else
-      gpu.setForeground(Farben.roteFarbe)
+      gpu.setForeground(0xFF0000)
       print(eingabe[3])
     end
   end
@@ -233,26 +214,26 @@ function Funktion.checkKomponenten()
     r = nil
   end
   if gpu.maxResolution() == 80 then
-    gpu.setForeground(Farben.grueneFarbe)
+    gpu.setForeground(0x00FF00)
     print(sprachen.gpuOK2T)
   elseif gpu.maxResolution() == 160 then
     graphicT3 = true
-    gpu.setForeground(Farben.orangeFarbe)
+    gpu.setForeground(0xFF7F24)
     print(sprachen.gpuOK3T)
   else
-    gpu.setForeground(Farben.roteFarbe)
+    gpu.setForeground(0xFF0000)
     print(sprachen.gpuFehlt)
   end
-  gpu.setForeground(Farben.weisseFarbe)
+  gpu.setForeground(0xFFFFFF)
   if component.isAvailable("stargate") then
     sg = component.getPrimary("stargate")
     if sg.energyToDial(sg.localAddress()) then
       return true
     else
-      gpu.setForeground(Farben.roteFarbe)
+      gpu.setForeground(0xFF0000)
       print()
       print(sprachen.StargateNichtKomplett or "Stargate ist funktionsunfähig")
-      gpu.setForeground(Farben.weisseFarbe)
+      gpu.setForeground(0xFFFFFF)
       os.sleep(5)
       return
     end
@@ -266,6 +247,34 @@ function Funktion.update(versionTyp)
   if versionTyp == nil then
     versionTyp = "master"
   end
+  --[[
+  if fs.exists("/bin/github.lua") or wget("-f", "https://raw.githubusercontent.com/Nex4rius/Nex4rius-Programme/master/GitHub-Downloader/github.lua", "/bin/github.lua") then
+    Sicherung.installieren = true
+    if schreibSicherungsdatei(Sicherung) then
+      local f = io.open ("/autorun.lua", "w")
+      f:write([==[-- pastebin run -f YVqKFnsP]==] .. "\n")
+      f:write([==[-- von Nex4rius]==] .. "\n")
+      f:write([==[-- https://github.com/Nex4rius/Nex4rius-Programme/tree/master/Stargate-Programm]==] .. "\n")
+      f:write("\n")
+      f:write([==[if loadfile("/bin/wget.lua")("-f", "https://raw.githubusercontent.com/Nex4rius/Nex4rius-Programme/master/GitHub-Downloader/github.lua", "/bin/github.lua") then]==] .. "\n")
+      f:write([==[  return loadfile("/bin/github.lua")("Nex4rius", "Nex4rius-Programme", "]==] .. versionTyp .. [==[", "Stargate-Programm")]==] .. "\n")
+      f:write([==[end]==] .. "\n")
+      f:close()
+      if loadfile("/autorun.lua")() and version and versionTyp == "BETA" then
+        local f = io.open ("/stargate/version.txt", "a")
+        f:write(" BETA")
+        f:close()
+      end
+    else
+      io.write(sprachen.fehlerName or "<FEHLER>")
+      print(" /stargate/schreibSicherungsdatei.lua")
+    end
+  else
+    io.write(sprachen.fehlerName or "<FEHLER>")
+    print(" /bin/github.lua and GitHub download")
+  end
+  require("computer").shutdown(true)
+  ]]
   if wget("-f", Funktion.Pfad(versionTyp) .. "installieren.lua", "/installieren.lua") then
     Sicherung.installieren = true
     if schreibSicherungsdatei(Sicherung) then
@@ -282,6 +291,7 @@ function Funktion.update(versionTyp)
   end
   os.exit()
 end
+
 function Funktion.checkServerVersion()
   if wget("-fQ", Funktion.Pfad("master") .. "stargate/version.txt", "/serverVersion.txt") then
     local f = io.open ("/serverVersion.txt", "r")
@@ -293,6 +303,7 @@ function Funktion.checkServerVersion()
   end
   return serverVersion
 end
+
 function Funktion.checkBetaServerVersion()
   if wget("-fQ", Funktion.Pfad("beta") .. "stargate/version.txt", "/betaVersion.txt") then
     local f = io.open ("/betaVersion.txt", "r")
@@ -315,6 +326,17 @@ function Funktion.checkDateien()
   f:write('   loadfile("/bin/wget-lua")("-f", "https://raw.githubusercontent.com/Nex4rius/Nex4rius-Programme/master/GitHub-Downloader/github.lua", "/bin/github.lua")\n')
   f:write('   loadfile("/bin/github.lua")("Nex4rius", "Nex4rius-Programme", "master", "Stargate-Programm")\n')
   f:write('end\n')
+--[[
+  f:write([==[-- pastebin run -f YVqKFnsP]==] .. "\n")
+  f:write([==[-- von Nex4rius]==] .. "\n")
+  f:write([==[-- https://github.com/Nex4rius/Nex4rius-Programme/tree/master/Stargate-Programm]==] .. "\n")
+  f:write("\n")
+  f:write([==[if not pcall(loadfile("/autorun.lua"), require("shell").parse(...)[1]) then]==] .. "\n")
+  f:write([==[    if loadfile("/bin/wget.lua")("-f", "https://raw.githubusercontent.com/Nex4rius/Nex4rius-Programme/master/GitHub-Downloader/github.lua", "/bin/github.lua") then]==] .. "\n")
+  f:write([==[        loafile("/bin/github.lua")("Nex4rius", "Nex4rius-Programme", "master", "Stargate-Programm")]==] .. "\n")
+  f:write([==[    end]==] .. "\n")
+  f:write([==[end]==])
+--]]
   f:close()
   local dateien = {
     "stargate/Kontrollprogramm.lua",
@@ -454,10 +476,15 @@ end
 function Funktion.main()
   os.sleep(0.5)
   gpu.setResolution(70, 25)
-  gpu.setForeground(Farben.weisseFarbe)
-  gpu.setBackground(Farben.graueFarbe)
+  if OC then
+    gpu.setForeground(0xFFFFFF)
+    gpu.setBackground(6684774)
+  elseif CC then
+    gpu.setForeground(1)
+    gpu.setBackground(256)
+  end
   if gpu.maxResolution() == 160 then
-    gpu.setBackground(Farben.graueFarbe)
+    gpu.setBackground(0x333333)
   end
   gpu.fill(1, 1, 70, 25, " ")
   term.clear()
@@ -488,8 +515,13 @@ function Funktion.main()
     end
   end
   if arg == sprachen.hilfe or arg == "hilfe" or arg == "help" or arg == "?" then
-    gpu.setForeground(Farben.schwarzeFarbe)
-    gpu.setBackground(Farben.weisseFarbe)
+    if OC then
+      gpu.setForeground(0x000000)
+      gpu.setBackground(0xFFFFFF)
+    elseif CC then
+      gpu.setForeground(32768)
+      gpu.setBackground(1)
+    end
     print(sprachen.Hilfetext or [==[
       Verwendung: autorun [...]
       ja    -> Aktualisierung zur stabilen Version
@@ -507,8 +539,13 @@ function Funktion.main()
       os.sleep(5)
     end
   end
-  gpu.setForeground(Farben.weisseFarbe)
-  gpu.setBackground(Farben.schwarzeFarbe)
+  if OC then
+    gpu.setForeground(0xFFFFFF)
+    gpu.setBackground(0x000000)
+  elseif CC then
+    gpu.setForeground(1)
+    gpu.setBackground(32768)
+  end
   term.clear()
   gpu.setResolution(gpu.maxResolution())
 end
