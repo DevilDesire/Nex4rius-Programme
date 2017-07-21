@@ -1360,6 +1360,10 @@ function Funktion.Tastatur()
   end
 end
 
+function Funktion.modem_message(e)
+  event.push("sgMessageReceived", nil, e[6])
+end
+
 function Funktion.sgChevronEngaged(e)
   chevron = e[3]
   if chevron <= 4 then
